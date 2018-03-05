@@ -1,5 +1,8 @@
 import React, { Component } from 'react';
+import {connect} from 'react-redux'
 import {db} from '../firebase';
+import {getRoomList, createRoom} from '../actions';
+
 
 class Lobby extends Component {
     constructor(props){
@@ -9,24 +12,34 @@ class Lobby extends Component {
             roomName: ''
         };
     }
+    componentDidMount(){
+        db.ref('/chat-rooms').on('value', snapshot => {
+            this.props.getRoomList(snapshot.val());
+        });
+    }
 
     handleCreateRoom(e){
         e.preventDefault();
 
-        console.log('Room Name: ', this.state.roomName);
+        this.props.createRoom(this.state.roomName);
 
-        const newRoom = {
-            name: this.state.roomName,
-            chatLog: [`Room: ${this.state.roomName} - Created`]
-        };
-
-        db.ref('/chat-rooms').push(newRoom).then(resp => {
-            console.log('Add Room Resp: ', resp)
-        })
+        this.setState({roomName: ''});
     }
 
     render(){
         const { roomName } = this.state
+        const { roomList } = this.props
+        let rooms = [];
+
+        if(roomList){
+            rooms = Object.keys(roomList).map((key, index) => {
+                return <li key={index} className="collection-item">{roomList[key].name}</li>
+            })
+        } else {
+            rooms.push(<li key="0" className="collection-itme">No rooms available. Create one above.</li>)
+        }
+        
+
         return(
             <div>
                 <h3>Chat Lobby</h3>
@@ -35,9 +48,18 @@ class Lobby extends Component {
                     <input type="text" onChange={e => this.setState({roomName: e.target.value})} value={roomName}/>
                     <button>Create Room</button>
                 </form>
+                <ul className="collection">
+                    {rooms}
+                </ul>
             </div>
         )
     }
 }
 
-export default Lobby;
+function mapStateToProps(state){
+    return{
+        roomList: state.chat.roomList
+    }
+}
+
+export default connect(mapStateToProps, {getRoomList, createRoom})(Lobby);
