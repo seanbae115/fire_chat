@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import {connect} from 'react-redux'
 import {db} from '../firebase';
 import {getRoomList, createRoom} from '../actions';
+import { Link } from 'react-router-dom';
 
 
 class Lobby extends Component {
@@ -11,11 +12,17 @@ class Lobby extends Component {
         this.state = {
             roomName: ''
         };
+
+        this.dbChatRef = db.ref('/chat-rooms');
     }
     componentDidMount(){
-        db.ref('/chat-rooms').on('value', snapshot => {
+        this.dbChatRef.on('value', snapshot => {
             this.props.getRoomList(snapshot.val());
         });
+    }
+
+    componentWillUnmount(){
+        this.dbChatRef.off(); 
     }
 
     handleCreateRoom(e){
@@ -33,8 +40,12 @@ class Lobby extends Component {
 
         if(roomList){
             rooms = Object.keys(roomList).map((key, index) => {
-                return <li key={index} className="collection-item">{roomList[key].name}</li>
-            })
+                return (
+                    <li key={index} className="collection-item">
+                        <Link to={`/room/${key}/log/${roomList[key].chatLogId}`}>{roomList[key].name}</Link>
+                    </li>
+                );
+            });
         } else {
             rooms.push(<li key="0" className="collection-itme">No rooms available. Create one above.</li>)
         }
